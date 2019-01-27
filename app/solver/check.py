@@ -13,6 +13,9 @@ class Check:
         self.solution = np.full(self.colors, np.NaN)
         self.nd_arr = np.empty((self.customers, self.colors, 2))
         self.nd_arr.fill(np.NaN)
+        self.max_paint_combos = 3000
+        self.max_customers = 2000
+        self.max_colors = 2000
         self.df = None
 
     def check(self):
@@ -85,13 +88,15 @@ class Check:
         if not isinstance(self.customers, int):
             # logger.info("Specied number of customers not an integer.")
             self.possible = False
-        if self.colors < 1 or self.colors > 2000:
+        if self.colors < 1 or self.colors > self.max_colors:
             # Number of colors must be within specified bounds.
-            # logger.info("Number of colors must be less than 2000.")
+            # logger.info("Number of colors must be a positive integer less than %d. Specified value: %d." %
+            # (self.max_colors, self.colors)
             self.possible = False
-        if self.customers < 1 or self.customers > 2000:
+        if self.customers < 1 or self.customers > self.max_customers:
             # Number of customers must be within specified bounds.
-            # logger.info("Number of customers must be less than 2000.")
+            # logger.info("Number of customers must be a positive integer less than %d. Specified value: %d." %
+            # (self.max_customers, self.customers)
             self.possible = False
         if len(self.request) != self.customers:
             # Number of customers must be correctly specified.
@@ -103,14 +108,15 @@ class Check:
             self.possible = False
 
     def check_nd_arr(self):
+        # The total number of paint choices must be less than 3000.
+        if np.sum(np.sum(np.nansum(self.nd_arr, axis=1), axis=1)) > self.max_paint_combos:
+            self.possible = False
+
         # Find unliked paint colors and set these to 0 in base solution.
         unliked = np.sum(np.nansum(self.nd_arr, axis=0), axis=1)
         self.solution[unliked == 0] = 0
 
     def check_df(self):
-        if self.df.groupby('cust_id').apply(lambda x: x['n_paints'].unique()[0]).sum() > 3000:
-            # Sum of paint choices must be less than 3000.
-            self.possible = False
         for customer, group in self.df.groupby('cust_id'):
             if group['finish'].sum() > 1:
                 # Too many matte finishes per customer specified.
