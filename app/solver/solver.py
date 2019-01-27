@@ -7,7 +7,9 @@ def solver(problem):
     customers = problem.get("customers")
     demands = problem.get("demands")
 
-    return get_results(Check(colors, customers, demands))
+    check = Check(colors, customers, demands)
+
+    return get_results(check.check())
 
 
 def get_results(check):

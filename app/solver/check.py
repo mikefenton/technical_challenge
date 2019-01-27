@@ -14,18 +14,21 @@ class Check:
         self.nd_arr = np.empty((self.customers, self.colors, 2))
         self.nd_arr.fill(np.NaN)
         self.df = None
-        self.check_input()
-        self.convert_request_to_df()
-        self.enrich_df()
-        self.check_df()
-        self.check_nd_arr()
+
+    def check(self):
+        calls = [self.check_input, self.check_customers, self.convert_request_to_df,
+                 self.enrich_df, self.check_df, self.check_nd_arr]
+        for method in calls:
+            # We only need to do subsequent checks if things are not impossible thus far.
+            if self.possible:
+                method()
+        return self
 
     def convert_request_to_df(self):
         columns = ['cust_id', 'color', 'finish', 'n_paints', 'n_cust', 'n_finish']
         df = []
         for i, customer in enumerate(self.request):
             # Iterate over all entries in the request array.
-            self.check_customer(customer)
             n_paints = customer[0]
             for color, finish in zip(customer[1::2], customer[::2][1:]):
                 # Create a new customer.
@@ -44,42 +47,59 @@ class Check:
         for col in self.df.columns.values:
             self.df[col] = self.df[col].astype(int)
 
+    def check_customers(self):
+        for i, customer in enumerate(self.request):
+            # logger.info("Checking customer %d.")
+            self.check_customer(customer)
+
     def check_customer(self, customer):
         if (len(customer)) % 2 != 1:
             # Ensure length of given customer array is correct.
+            # logger.info("Uneven number of entries for customer.")
             self.possible = False
         if not all([isinstance(i, int) for i in customer]):
             # Must be all integer values.
+            # logger.info("All customer values not integers.")
             self.possible = False
-        if customer[0] < 1:
-            # Must be a positive integer.
+        if not all([i >= 0 for i in customer]):
+            # Must be positive integer.
+            # logger.info("All customer values not positive.")
             self.possible = False
         if customer[0] != int(len(customer[1:]) / 2):
             # T must be correctly specified.
+            # logger.info("T incorrectly specified")
             self.possible = False
-        if customer[1] < 1 or customer[1] > self.colors:
-            # Specified color must be within permissible range.
+        if any([i > self.colors for i in customer[1::2]]):
+            # Specified colors must be within permissible range.
+            # logger.info("Specified colors outside of permissible range.")
             self.possible = False
-        if customer[2] not in (0, 1):
-            # Paint finish must be binary.
+        if any([i not in (0, 1) for i in customer[::2][1:]]):
+            # Paint finishes must be binary.
+            # logger.info("Paint finish not binary.")
             self.possible = False
 
     def check_input(self):
         if not isinstance(self.colors, int):
+            # logger.info("Specied number of colors not an integer.")
             self.possible = False
         if not isinstance(self.customers, int):
+            # logger.info("Specied number of customers not an integer.")
             self.possible = False
         if self.colors < 1 or self.colors > 2000:
             # Number of colors must be within specified bounds.
+            # logger.info("Number of colors must be less than 2000.")
             self.possible = False
         if self.customers < 1 or self.customers > 2000:
             # Number of customers must be within specified bounds.
+            # logger.info("Number of customers must be less than 2000.")
             self.possible = False
         if len(self.request) != self.customers:
             # Number of customers must be correctly specified.
+            # logger.info("Number of customers incorrectly specified.")
             self.possible = False
         if self.colors < self.customers:
             # We can only have one batch per color. Too many customers.
+            # logger.info("Not enough colors for all customers")
             self.possible = False
 
     def check_nd_arr(self):
